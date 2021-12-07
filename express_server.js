@@ -7,6 +7,17 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 app.set("view engine", "ejs");
 
+const generateRandomString = function () {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let charactersLength = characters.length;
+    for (let i = 0; i < 6; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+
+    return result;
+  }; 
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -23,7 +34,7 @@ app.get("/urls.json", (req, res) => {
 
 app.get("/hello", (req,res) => {
     res.send("<html><body>hello <b>World</b></body</html>\n");
-    let templateVars = {greeting: "Hello World!"};
+    const templateVars = {greeting: "Hello World!"};
     res.render("Hello_World", templateVars);
 });
 
