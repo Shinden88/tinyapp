@@ -8,17 +8,15 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
-        <% if(!username) { %> 
-        <form class="nav-item nav-link" action="/login %>" method="POST">
-          login: <input type="text" name="username">
-          <input type="submit">
-        </form>
+        <% if(!user) { %>
+          <a class="nav-item nav-link" href="/login">Login
+          <a class="nav-item nav-link" href="/register">Register</a>
         
-        <% } else { %>
+        <% } else {%>
           <form class="nav-item nav-link" action="/logout %>" method="POST">
             <button type="submit" value="submit">logout</button>
           </form>
-          logged in as <%= username %>!
+            Logged in as <%= user.email %>!
           <% } %>
       </div>
     </div>
