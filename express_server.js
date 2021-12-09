@@ -3,6 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
@@ -53,7 +54,7 @@ const pwLookup = password => {
   return false;
 };
 
-//---- 
+//---------- 
 const findUserByEmail = email => {
   for (i in users) {
     if (users[i].email === email) {
@@ -63,6 +64,7 @@ const findUserByEmail = email => {
   return false;
 };
 
+//-----------
 function urlsForUser(id) {
   let result = {};
   for (key in urlDatabase) {
@@ -181,29 +183,38 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   }   
 });
 
+//-----------
 app.post("/urls/:id", (req,res) => {
 const shortURL = req.params.id
 urlDatabase[shortURL].longURL = req.body.longURL
 res.redirect("/urls");
 });
 
+//-----------
 app.post("/login", (req, res) => {
-  if (!emailLookUp(req.body.email) || !pwLookup(req.body.password)) {
-    res.redirect(403, '/login');
+  if (!emailLookUp(req.body.email)) {
+    res.status(403).send('Invalid request');
   } else if (!req.body.email || !req.body.password) {
     res.redirect(403, '/login');
   } else {
     let user = findUserByEmail(req.body.email);
-    res.cookie("uesr_id", user.id);
-    res.redirect("/urls");
+    
+    if (bcrypt.compareSync(req.body.password, user['password'])) {
+      res.cookie("user_id", user.id)
+      res.redirect("/urls");
+    } else {
+      res.status(403).send("Pssword does not match");
+    }
   }
 });
 
+//------------
 app.post("/logout", (req, res) => {
   res.clearCookie('user_id');
   res.redirect('/urls');
 });
 
+//-----------
 app.post("/register", (req, res) => {
   if (emailLookUp(req.body.email)) {
     res.redirect(400, '/register');
@@ -216,14 +227,15 @@ app.post("/register", (req, res) => {
     users[newUser] = {
       id: newUser,
       email: req.body.email,
-      password: req.body.password
+      password: bcrypt.hashSync(req.body.password,10)
     }
+    console.log(users);
     res.cookie("user_id", users[newUser].id);
     res.redirect("/urls");
   }
 });
 
-
+//-----------
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
