@@ -3,7 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
-const bcrypt = require('bcrypt');
+
 
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
@@ -30,8 +30,8 @@ const users = {
 
 //-------* URL Database *--------
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2":{longURL: "http://www.lighthouselabs.ca", userId:"aJ48LW" } ,
+  "9sm5xK": {longURL:"http://google.com", userId:"aJ48LW"}
 };
 
 //-------* Email Lookup *------- 
