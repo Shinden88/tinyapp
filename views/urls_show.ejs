@@ -7,19 +7,25 @@
 </head>
 
 <body>
-  <% include ('partials/_header') %>
-    <div class="card text-center">
-      <div class="card-header"></div>
-      <div class="card-body">
-        <h5 class="card-title">TinyURL for: <%= longURL %></h5>
-        <p class="card-text">Short URL: <a href="<%= shortURL %>"><%= shortURL %></a></p>
-      </div>
-      
-      <div class="card-footer text-muted"> Edit
-        <form action="/urls/<%= shortURL %>" method="POST">
-          New URL: <input type="text" name="longURL">
-          <input type="submit">
-        </form>
+  <header>
+    <%- include('partials/_header') %>
+  </header>
+  <div class="card text-center">
+    <div class="card-header"></div>
+    <div class="card-body">
+      <h5 class="card-title">TinyURL for: <%= longURL %>
+      </h5>
+      <p class="card-text">Short URL: <a href="/u/<%= shortURL %>">
+          <%= shortURL %>
+        </a></p>
+    </div>
+    <div class="card-footer text-muted">
+  
+      <form method="POST" action="/urls/<%= shortURL %>" class="form-inline">
+        <label for="longURL">Update URL:</label>
+        <input class="form-control" type="url" name="longURL" placeholder="https://" style="width: 300px; margin: 1em">
+        <button type="submit" class="btn btn-secondary">Submit</button>
+      </form>
       </div>
     </div>
     <!-- Bootstrap JS -->
