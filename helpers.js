@@ -3,8 +3,14 @@
 const bcrypt = require('bcryptjs');
 
 const urlDatabase = {
-  "b2xVn2":{longURL: "http://www.lighthouselabs.ca", userId:"aJ48LW" } ,
-  "9sm5xK": {longURL:"http://google.com", userId:"aJ48LW"}
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
+  }
 };
 
 
@@ -25,7 +31,7 @@ const users = {
 
 //---------* URL shortening *------------------
 const generateRandomString = function () {
-  let r = Math.random().toString(36).substring(6);
+  let r = Math.random().toString(36).substring(7);
   return r;
 };
 

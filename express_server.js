@@ -1,5 +1,4 @@
 const express = require('express');
-
 const app = express();
 const PORT = 8080; // default port 8080
 const morgan = require('morgan');
@@ -19,25 +18,8 @@ app.use(cookieSession({
 //---------------------------------
 
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(morgan("dev"));
 app.set('view engine', 'ejs');
-
-//-------
-app.get('/register', (req, res) => {
-  const templateVars = {
-    user: req.session.user_id,
-  };
-  res.render('register_page', templateVars);
-});
-
-//-------
-app.get('/', (req, res) => {
-  res.redirect('/register');
-});
-
-//-------
-app.get('/urls.json', (req, res) => {
-  res.json(urlDatabase);
-});
 
 //-------
 app.get('/urls', (req, res) => {
@@ -61,12 +43,10 @@ app.get('/urls/new', (req, res) => {
   }
 });
 
-//--------
-app.get('/login', (req, res) => {
-  const templateVars = {
-    user: req.session.user_id,
-  };
-  res.render('login_page', templateVars);
+//----------------
+app.get('/u/:shortURL', (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL].longURL;
+  res.redirect(longURL);
 });
 
 //----------------
@@ -89,12 +69,6 @@ app.get('/urls/:shortURL', (req, res) => {
 });
 
 //---------
-app.get('/u/:shortURL', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longURL);
-});
-
-// ----------* Post Routes *-------------
 app.post('/urls', (req, res) => {
   const shortURL = generateRandomString();
   const longURL = req.body.longURL;
@@ -103,6 +77,17 @@ app.post('/urls', (req, res) => {
     userID: req.session.user_id,
   };
   res.redirect(`/urls/${shortURL}`);
+});
+
+//--------------
+app.post("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  urlDatabase[shortURL].longURL = req.body.longURL;
+  if (req.session.user_id === urlDatabase[shortURL].userID) {
+    return res.redirect("/urls");
+  } else {
+    return res.redirect("/login");
+  }
 });
 
 //----------
@@ -124,6 +109,22 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   }
 });
 
+//--------
+app.get('/login', (req, res) => {
+  const templateVars = {
+    user: req.session.user_id,
+  };
+  res.render('login_page', templateVars);
+});
+
+//-------
+app.get('/register', (req, res) => {
+  const templateVars = {
+    user: req.session.user_id,
+  };
+  res.render('register_page', templateVars);
+});
+
 //-----------
 app.post('/login', (req, res) => {
   const email = req.body.email;
@@ -138,21 +139,6 @@ app.post('/login', (req, res) => {
       error: 'Something is wrong!',
     };  
     return res.status(400).render('400', templateVars);
-  }
-});
-
-//------------
-app.post('/logout', (req, res) => {
-  req.session = null;
-  res.redirect('/urls');
-});
-
-//--------------------
-app.get('*', (req, res) => {
-  if (req.session.user_id) {
-    return res.redirect('/urls');
-  } else {
-    return res.redirect('/login');
   }
 });
 
@@ -183,6 +169,22 @@ app.post('/register', (req, res) => {
     return res.redirect('/urls');
   }
 });
+
+//------------
+app.post('/logout', (req, res) => {
+  req.session = null;
+  res.redirect('/urls');
+});
+
+//--------------------
+app.get('*', (req, res) => {
+  if (req.session.user_id) {
+    return res.redirect('/urls');
+  } else {
+    return res.redirect('/login');
+  }
+});
+
 
 //-----------
 app.listen(PORT, () => {
