@@ -1,192 +1,213 @@
-const express = require('express');
+// Express
+const express = require("express");
 const app = express();
-const PORT = 8080; // default port 8080
-const morgan = require('morgan');
-const bodyParser = require('body-parser');
-const cookieSession = require('cookie-session');
-const bcrypt = require('bcryptjs');
 
-const { generateRandomString, getUserByEmail, getPasswordCheck, urlsForUser, urlDatabase, users } = require('./helpers');
+// 3rd Party Packages
+const bcrypt = require('bcrypt');
 
-//------------------------------
+// Constants
+const PORT = 8080;
 
+// Import Helper Functions
+const {
+  generateRandomString,
+  getUserByEmail,
+  getUrlsByUserId,
+  recordAnalytics,
+} = require("./helpers");
+
+app.set("view engine", "ejs");
+
+// Middleware: method-override, body-parser, cookie-parser
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({extended: true}));
+
+const cookieSession = require("cookie-session");
 app.use(cookieSession({
   name: 'session',
-  keys: ['key1', 'key2'],
+  keys: ["LighthouseLabs"],
 }));
 
-//---------------------------------
+// Pseudo-database for URLs and users:
+const urlDatabase = {};
+const users = {};
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(morgan("dev"));
-app.set('view engine', 'ejs');
+// Routes - Get Routes
 
-//-------
-app.get('/urls', (req, res) => {
-  const templateVars = {
-    urls: urlsForUser(req.session.user_id),
-    user: users[req.session.user_id],
-  };
+// URL Display Routes
+app.get("/urls", (req, res) => {
+  const userId = req.session.userId;
+  const urls = getUrlsByUserId(urlDatabase, userId);
+  const templateVars = { urls: urls, user: users[userId] };
   res.render('urls_index', templateVars);
 });
 
-//-------
-app.get('/urls/new', (req, res) => {
-  if (req.session.user_id) {
-    const templateVars = {
-      urls: urlDatabase,
-      user: users[req.session.user_id],
-    };
-    return res.render('urls_new', templateVars);
-  } else {
-    return res.redirect('/login');
+app.get("/urls/new", (req, res) => {
+  const templateVars = { user: users[req.session.userId] };
+  if (!req.session.userId) {
+    res.redirect("/login");
   }
+  res.render("urls_new", templateVars);
 });
 
-//----------------
-app.get('/u/:shortURL', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
+app.get("/urls/:shortURL", (req, res) => {
+  if (!req.session.userId) {
+    return res.redirect("/login");
+  }
+  // Check that short URL exists
+  if (!Object.keys(urlDatabase).includes(req.params.shortURL)) {
+    return res.status(404).redirect("/404");
+  }
+  // Track unique visitors for analytics
+  let uniqueVisitorsTotal = 0;
+  if (urlDatabase[req.params.shortURL]["uniqueVisitors"]) {
+    uniqueVisitorsTotal = urlDatabase[req.params.shortURL]["uniqueVisitors"].length;
+  }
+  const templateVars = {
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL]["longURL"],
+    user: users[req.session.userId],
+    visitsCount: urlDatabase[req.params.shortURL]["visitsCount"] || 0,
+    uniqueVisitorsTotal: uniqueVisitorsTotal,
+    visits: urlDatabase[req.params.shortURL]["visits"] || [],
+  };
+  res.render("urls_show", templateVars);
+});
+
+app.get("/u/:shortURL", (req, res) => {
+  // Check that short URL exists
+  if (!Object.keys(urlDatabase).includes(req.params.shortURL)) {
+    return res.status(404).redirect("/404");
+  }
+  const longURL = urlDatabase[req.params.shortURL]["longURL"];
+  recordAnalytics(req, urlDatabase);
   res.redirect(longURL);
 });
 
-//----------------
-app.get('/urls/:shortURL', (req, res) => {
-  const shortURL = req.params.shortURL;
-  if (urlDatabase[shortURL] && req.session.user_id === urlDatabase[shortURL].userID) {
-    const longURL = urlDatabase[shortURL].longURL;
-    const templateVars = {
-      shortURL: shortURL,
-      longURL: longURL,
-      user: users[req.session.user_id],
-    };
-    return res.render('urls_show', templateVars);
+// Authentication Routes
+app.get("/register", (req, res) => {
+  // Redirect if session id already exists
+  if (Object.keys(users).includes(req.session.userId)) {
+    return res.redirect("/urls");
+  }
+  const templateVars = { user: users[req.session.userId] };
+  res.render("urls_register", templateVars);
+});
+
+app.get("/login", (req, res) => {
+  const templateVars = { user: users[req.session.userId] };
+  res.render("urls_login", templateVars);
+});
+
+// Error Routes
+app.get('/400', (req, res) => {
+  const templateVars = { user: users[req.session.userId] };
+  res.status('400');
+  res.render('400', templateVars);
+});
+
+app.get('/403', (req, res) => {
+  const templateVars = { user: users[req.session.userId] };
+  res.status('403');
+  res.render('403', templateVars);
+});
+
+app.get('/404', (req, res) => {
+  const templateVars = { user: users[req.session.userId] };
+  res.status('404');
+  res.render('404', templateVars);
+});
+
+// Catch-all Routes
+app.get('*', (req, res) => {
+  const userId = req.session.userId;
+  if (userId) {
+    res.redirect("/urls");
   } else {
-    const templateVars = {
-      error: '404 Not Found',
-    };
-    return res.render('404', templateVars);
+    res.redirect("/login");
   }
 });
 
-//---------
-app.post('/urls', (req, res) => {
-  const shortURL = generateRandomString();
-  const longURL = req.body.longURL;
-  urlDatabase[shortURL] = {
-    longURL: longURL,
-    userID: req.session.user_id,
-  };
+// ROUTES - Post/Delete/Put Routes
+
+// Delete URL
+app.delete("/urls/:shortURL/delete", (req, res) => {
+  // Authentication
+  if (!req.session.userId) {
+    return res.status('403').redirect('/403');
+  }
+  const shortURL = req.params.shortURL;
+  // Authorization
+  if (req.session.userId === urlDatabase[shortURL]["userId"]) {
+    delete urlDatabase[shortURL];
+    res.redirect('/urls');
+  } else {
+    res.status('403').redirect('/403');
+  }
+});
+
+// Create URL
+app.post("/urls", (req, res) => {
+  // Authentication
+  if (!req.session.userId) {
+    return res.status('403').redirect('/403');
+  }
+  const shortURL = generateRandomString(urlDatabase);
+  urlDatabase[shortURL] = { longURL: req.body.longURL, userId: req.session.userId };
   res.redirect(`/urls/${shortURL}`);
 });
 
-//--------------
-app.post("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  urlDatabase[shortURL].longURL = req.body.longURL;
-  if (req.session.user_id === urlDatabase[shortURL].userID) {
-    return res.redirect("/urls");
+// Update URL
+app.put("/urls/:id", (req, res) => {
+  const shortURL = req.params.id;
+  if (req.session.userId === urlDatabase[shortURL]["userId"]) {
+    urlDatabase[shortURL] = { longURL: req.body.longURL, userId: req.session.userId };
+    res.redirect(`/urls`);
   } else {
-    return res.redirect("/login");
+    res.status('403').redirect('/403');
   }
 });
 
-//----------
-app.post('/urls/:shortURL/delete', (req, res) => {
-  const shortURL = req.params.shortURL;
-  if (!req.session.user_id) {
-    const templateVars = {
-      error: 'Action Not Allowed',
-    };
-    return res.render('400', templateVars);
-  } else if (req.session.user_id === urlDatabase[shortURL].userID) {
-    delete urlDatabase[shortURL];
-    return res.redirect('/urls');
-  } else {
-    const templateVars = {
-      error: 'Page Not Found',
-    };
-    return res.render('404', templateVars);
-  }
-});
-
-//--------
-app.get('/login', (req, res) => {
-  const templateVars = {
-    user: req.session.user_id,
-  };
-  res.render('login_page', templateVars);
-});
-
-//-------
-app.get('/register', (req, res) => {
-  const templateVars = {
-    user: req.session.user_id,
-  };
-  res.render('register_page', templateVars);
-});
-
-//-----------
-app.post('/login', (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-  const mailCheck = getUserByEmail(email, users);
-  const passCheck = getPasswordCheck(email, password, users);
-  if (passCheck && mailCheck) {
-    req.session.user_id = mailCheck;
-    return res.redirect('/urls');
-  } else {
-    const templateVars = {
-      error: 'Something is wrong!',
-    };  
-    return res.status(400).render('400', templateVars);
-  }
-});
-
-//-----------
-app.post('/register', (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-
-  if (!email || !password) {
-    const templateVars = {
-      error: 'Something is wrong!',
-    };
-    return res.status(400).render('400', templateVars);
-  } else if (getUserByEmail(email, users)) {
-    const templateVars = {
-      error: 'Something is wrong!',
-    };
-    return res.status(400).render('400', templateVars);
-  } else {
-    const id = generateRandomString();
-    const user = {
-      id,
-      email,
-      hashedPassword: bcrypt.hashSync(password, 10),
-    };
-    users[id] = user;
-    req.session.user_id = user.id;
-    return res.redirect('/urls');
-  }
-});
-
-//------------
-app.post('/logout', (req, res) => {
+// Authentication routes
+app.post("/logout", (req, res) => {
   req.session = null;
   res.redirect('/urls');
 });
 
-//--------------------
-app.get('*', (req, res) => {
-  if (req.session.user_id) {
-    return res.redirect('/urls');
+app.post("/register", (req, res) => {
+  const userId = generateRandomString(users);
+  if (!(req.body.email) || !(req.body.password)) {
+    res.status('403').redirect('/400');
+    return;
+  }
+  if (getUserByEmail(users, req.body.email)) {
+    res.status('403').redirect('/400');
+    return;
+  }
+  const hashedPass = bcrypt.hashSync(req.body.password, 10);
+  users[userId] = { id: userId, email: req.body.email, password: hashedPass };
+  req.session.userId = userId;
+  res.redirect('/urls');
+});
+
+app.post("/login", (req, res) => {
+  const userId = getUserByEmail(users, req.body.email);
+  if (!userId) {
+    return res.status('403').redirect('/403');
+  }
+  if (bcrypt.compareSync(req.body.password, users[userId]["password"])) {
+    req.session.userId = userId;
+    res.redirect('/urls');
   } else {
-    return res.redirect('/login');
+    res.status('403').redirect('/403');
   }
 });
 
+// END OF ROUTES **********************
 
-//-----------
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`App listening on port ${PORT}!`);
 });

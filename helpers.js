@@ -1,73 +1,64 @@
-//-----* These functions will be used by the express server *------------
-
-const bcrypt = require('bcryptjs');
-
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW"
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "aJ48lW"
+// Generates string for use as IDs for shortURLs and users
+const generateRandomString = function(object) {
+  let result           = '';
+  let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let redo = true;
+  const len = 6; // Length of the random string
+  while (redo) {
+    for (let i = 0; i < len; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    redo = false;
+    // Check for duplicates
+    if (object) { // skip if object is undefined - used in stretch assignment for generation of first visitor ID
+      for (const key of Object.keys(object)) {
+        if (key === result) redo = true;
+      }
+    }
   }
+  return result;
 };
 
-
-
-const users = {
-  "userRandomID": {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "abc"
-  },
-  "user2RandomID": {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "cba"
-  }
-};
-
-
-//---------* URL shortening *------------------
-const generateRandomString = function () {
-  let r = Math.random().toString(36).substring(7);
-  return r;
-};
-
-//--------* Email verification (if already used or not) *------------
-const getUserByEmail = function(email, users) {
+const getUserByEmail = function(users, email) {
   for (let user in users) {
     if (users[user].email === email) {
-      return users[user].id;
+      return user;
     }
   }
 };
 
-
-//----------* Password verification *---------------------
-const getPasswordCheck = function(email, password, users) {
-  console.log(users);
-  for (let user in users) {
-    if (users[user].email === email && bcrypt.compareSync(password, users[user].hashedPassword)) {
-      return true;
+const getUrlsByUserId = function(urls, id) {
+  let output = {};
+  for (let url in urls) {
+    if (urls[url]["userId"] === id) {
+      output[url] = urls[url];
     }
   }
-  return false;
+  return output;
 };
 
-
-//----------------------------------------------------
-const urlsForUser = function(id) {
-  let urls = {};
-  for (let shortURL in urlDatabase) {
-    if (id === urlDatabase[shortURL].userID) {
-      urls[shortURL] = urlDatabase[shortURL];
-    }
+// Stretch Assignment - Record Analytics
+const recordAnalytics = function(req, urlDatabase) {
+  // Count visits
+  urlDatabase[req.params.shortURL]["visitsCount"] = urlDatabase[req.params.shortURL]["visitsCount"] + 1 || 1;
+  // Records Unique Visitors
+  if (!urlDatabase[req.params.shortURL]["uniqueVisitors"]) {
+    urlDatabase[req.params.shortURL]["uniqueVisitors"] = [];
   }
-  return urls;
+  if (!urlDatabase[req.params.shortURL]["uniqueVisitors"].includes(req.session.userId)) {
+    urlDatabase[req.params.shortURL]["uniqueVisitors"].push(req.session.userId);
+  }
+  // Records Individual Visits
+  if (!urlDatabase[req.params.shortURL]["visits"]) {
+    urlDatabase[req.params.shortURL]["visits"] = [];
+  }
+  // Initially used the same random generation function as url ID and user ID to generate visitor ID, but I switched to a numeric count because it was more informative and there was no need for encryption here
+  urlDatabase[req.params.shortURL]["visits"].unshift({ timestamp: new Date(), visitor: urlDatabase[req.params.shortURL]["visitsCount"]});
 };
 
-
-
-module.exports = { generateRandomString, getUserByEmail, getPasswordCheck, urlsForUser, urlDatabase, users };
+module.exports = {
+  generateRandomString,
+  getUserByEmail,
+  getUrlsByUserId,
+  recordAnalytics,
+};

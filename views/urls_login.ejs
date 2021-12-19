@@ -5,18 +5,22 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
     integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-  <title>403: Forbidden - TinyApp</title>
+  <title>Login - TinyApp</title>
 </head>
 <header>
   <%- include('partials/_header') %>
 </header>
 
 <body>
-  <br>
-  <div class="ml-3">
-    <h4>403: Forbidden</h4>
-    <p>You attempted to access resources without proper authorization.</p>
-  </div>
+  <form class="form-group ml-3 mb-2 mt-2" action="/login" method="POST">
+    <h3>Login</h3>
+    <label for="email">Please enter your e-mail address</label>
+    <input class="form-control w-50" type="email" name="email">
+    <label for="password">Please enter your password</label>
+    <input class="form-control w-50" type="password" name="password">
+    <br>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
   <!-- Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
     integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"

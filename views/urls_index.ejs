@@ -6,19 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
   <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+    integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
   <title>TinyApp</title>
 </head>
+<header>
+  <%- include('partials/_header') %>
+</header>
+
 <body>
-  <header>
-    <%- include('partials/_header') %>
-  </header>
-  
   <main style="margin: 1em;">
-  
     <% if (user) { %>
       <h3>My URLs</h3>
       <table class="table">
+        <!-- Table Headers -->
         <thead>
           <tr>
             <th scope="col">Short URL</th>
@@ -27,41 +28,52 @@
             <th scope="col">Delete</th>
           </tr>
         </thead>
+        <!-- Table Body -->
         <tbody>
-          <% for(let shortURL in urls) { %>
+          <% for(let url in urls) { %>
             <tr>
+              <td><a href="/u/<%=url%>">
+                  <%= url %>
+                </a></td>
               <td>
-                <%= shortURL %>
+                <%= urls[url]["longURL"] %>
               </td>
               <td>
-                <%= urls[shortURL].longURL %>
+                <a href="/urls/<%=url%>">
+                  <button type="submit" class="btn btn-outline-success">Edit</button>
+                </a>
               </td>
               <td>
-                <!-- <form method="POST" action="/urls/<%= shortURL %>"> -->
-                <a href="/urls/<%= shortURL %>"><button class="btn btn-secondary" type="submit">Edit</button></a>
-                <!-- </form> -->
-              </td>
-              <td>
-                <form method="POST" action="/urls/<%= shortURL %>/delete">
-                  <button class="btn btn-dark" type="submit">Delete</button>
+                <form method="POST" action="/urls/<%=url%>/delete?_method=DELETE">
+                  <button type="submit" class="btn btn-outline-danger">Delete</button>
                 </form>
               </td>
             </tr>
             <% } %>
         </tbody>
       </table>
-      <div style="padding-top: 3em">
-        <a class="btn btn-grey" href="/urls/new" style="color: #2E2F35">Create a New Short Link</a>
-      </div>
-      <% } else { %>
-        <p>Please register or login to see the information.</p>
-        <% } %>
-  
+      <% } %>
+        <% if (user) { %>
+          <h3> Shorten a new URL </h3>
+          <a href="/urls/new">
+            <p>Click here to shorten a new URL</p>
+          </a>
+          <% } else { %>
+            <h3> Welcome to TinyApp, a URL shortening service!</h3>
+            <p> Oops, you're not logged in. To view saved short URLs or to shorten an new URL, please <a
+                href="/login">log in</a> or <a href="/register">create an account</a>.</p>
+            <% } %>
   </main>
-                    
-      <!-- Bootstrap JS -->
-      <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    </body>
-    </html>
+  <!-- Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
