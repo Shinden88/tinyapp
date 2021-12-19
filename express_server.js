@@ -1,14 +1,14 @@
-// Express
+// Express ********************************************
 const express = require("express");
 const app = express();
 
-// 3rd Party Packages
+// 3rd Party Packages *********************************
 const bcrypt = require('bcrypt');
 
-// Constants
+// Constants ******************************************
 const PORT = 8080;
 
-// Import Helper Functions
+// Import Helper Functions ****************************
 const {
   generateRandomString,
   getUserByEmail,
@@ -18,7 +18,7 @@ const {
 
 app.set("view engine", "ejs");
 
-// Middleware: method-override, body-parser, cookie-parser
+// Middleware: method-override, body-parser, cookie-parser ***
 const methodOverride = require('method-override');
 app.use(methodOverride('_method'));
 
@@ -31,13 +31,11 @@ app.use(cookieSession({
   keys: ["LighthouseLabs"],
 }));
 
-// Pseudo-database for URLs and users:
+// Pseudo-database for URLs and users **************************
 const urlDatabase = {};
 const users = {};
 
-// Routes - Get Routes
-
-// URL Display Routes
+// URL Display Routes ******************************************
 app.get("/urls", (req, res) => {
   const userId = req.session.userId;
   const urls = getUrlsByUserId(urlDatabase, userId);
@@ -87,7 +85,7 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-// Authentication Routes
+// Authentication Routes *************************************
 app.get("/register", (req, res) => {
   // Redirect if session id already exists
   if (Object.keys(users).includes(req.session.userId)) {
@@ -102,7 +100,7 @@ app.get("/login", (req, res) => {
   res.render("urls_login", templateVars);
 });
 
-// Error Routes
+// Error Routes **********************************************
 app.get('/400', (req, res) => {
   const templateVars = { user: users[req.session.userId] };
   res.status('400');
@@ -121,7 +119,7 @@ app.get('/404', (req, res) => {
   res.render('404', templateVars);
 });
 
-// Catch-all Routes
+// Catch-all Routes ******************************************
 app.get('*', (req, res) => {
   const userId = req.session.userId;
   if (userId) {
@@ -131,7 +129,7 @@ app.get('*', (req, res) => {
   }
 });
 
-// ROUTES - Post/Delete/Put Routes
+// ROUTES - Post/Delete/Put Routes ****************************
 
 // Delete URL
 app.delete("/urls/:shortURL/delete", (req, res) => {
@@ -149,7 +147,7 @@ app.delete("/urls/:shortURL/delete", (req, res) => {
   }
 });
 
-// Create URL
+// Create URL **************************************************
 app.post("/urls", (req, res) => {
   // Authentication
   if (!req.session.userId) {
@@ -160,7 +158,7 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
-// Update URL
+// Update URL ***************************************************
 app.put("/urls/:id", (req, res) => {
   const shortURL = req.params.id;
   if (req.session.userId === urlDatabase[shortURL]["userId"]) {
@@ -171,7 +169,7 @@ app.put("/urls/:id", (req, res) => {
   }
 });
 
-// Authentication routes
+// Authentication routes *****************************************
 app.post("/logout", (req, res) => {
   req.session = null;
   res.redirect('/urls');
@@ -206,7 +204,7 @@ app.post("/login", (req, res) => {
   }
 });
 
-// END OF ROUTES **********************
+// End of Routes **************************************************
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}!`);
