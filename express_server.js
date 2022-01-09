@@ -37,8 +37,6 @@ const users = {};
 
 // URL Display Routes ******************************************
 app.get("/urls", (req, res) => {
-  console.log(urlDatabase);
-  console.log(users);
   const userId = req.session.userId;
   const urls = getUrlsByUserId(urlDatabase, userId);
   const templateVars = { urls: urls, user: users[userId] };
@@ -66,22 +64,16 @@ app.get("/urls/:shortURL", (req, res) => {
   if (urlDatabase[req.params.shortURL]["uniqueVisitors"]) {
     uniqueVisitorsTotal = urlDatabase[req.params.shortURL]["uniqueVisitors"].length;
   }
-  if(urlDatabase[req.params.shortURL].userId === req.session.userId){
   const templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]["longURL"],
     user: users[req.session.userId],
+    // Track visits for analytics
     visitsCount: urlDatabase[req.params.shortURL]["visitsCount"] || 0,
     uniqueVisitorsTotal: uniqueVisitorsTotal,
     visits: urlDatabase[req.params.shortURL]["visits"] || [],
   };
-  
   res.render("urls_show", templateVars);
-}
-else 
-{
-  return res.status(404).redirect("/404"); 
-}
 });
 
 app.get("/u/:shortURL", (req, res) => {
@@ -212,6 +204,7 @@ app.post("/login", (req, res) => {
     res.status('403').redirect('/403');
   }
 });
+
 
 // End of Routes **************************************************
 
